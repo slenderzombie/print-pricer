@@ -1,4 +1,4 @@
-const CACHE_NAME = '3d-print-pricer-v1';
+const CACHE_NAME = '3d-print-pricer-v2';
 const urlsToCache = [
   './print_calculator_pwa.html',
   './manifest.json'
