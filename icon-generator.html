@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate PWA Icons</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PWA Icon Generator</h1>
+        <p>Click the buttons below to download the icons for your PWA:</p>
+        
+        <canvas id="canvas192" width="192" height="192"></canvas>
+        <button onclick="downloadIcon(192)">Download 192x192 Icon</button>
+        
+        <br>
+        
+        <canvas id="canvas512" width="512" height="512"></canvas>
+        <button onclick="downloadIcon(512)">Download 512x512 Icon</button>
+        
+        <hr>
+        <p><strong>Instructions:</strong></p>
+        <ol>
+            <li>Click each download button to save the icons</li>
+            <li>Save them as "icon-192.png" and "icon-512.png"</li>
+            <li>Place them in the same folder as your PWA files</li>
+        </ol>
+    </div>
+
+    <script>
+        function drawIcon(size) {
+            const canvas = document.getElementById('canvas' + size);
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // 3D printer icon
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.02;
+            
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const scale = size / 200;
+            
+            // Draw simple 3D printer shape
+            // Frame
+            ctx.beginPath();
+            ctx.rect(centerX - 40 * scale, centerY - 50 * scale, 80 * scale, 100 * scale);
+            ctx.stroke();
+            
+            // Print bed
+            ctx.fillRect(centerX - 35 * scale, centerY + 30 * scale, 70 * scale, 8 * scale);
+            
+            // Nozzle
+            ctx.beginPath();
+            ctx.moveTo(centerX - 10 * scale, centerY - 30 * scale);
+            ctx.lineTo(centerX + 10 * scale, centerY - 30 * scale);
+            ctx.lineTo(centerX + 5 * scale, centerY - 20 * scale);
+            ctx.lineTo(centerX - 5 * scale, centerY - 20 * scale);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Dollar sign
+            ctx.font = `bold ${size * 0.25}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('$', centerX, centerY + 10 * scale);
+        }
+        
+        function downloadIcon(size) {
+            const canvas = document.getElementById('canvas' + size);
+            const link = document.createElement('a');
+            link.download = 'icon-' + size + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Draw icons on load
+        drawIcon(192);
+        drawIcon(512);
+    </script>
+</body>
+</html>

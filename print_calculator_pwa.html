@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Calculate pricing for 3D prints with multi-filament support and project tracking">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-title" content="Print Pricer">
+    
+    <title>3D Print Pricer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin: 16px 0;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 14px;
+            background: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .input, .select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        .input:focus, .select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .range-container {
+            margin-top: 12px;
+        }
+        
+        .range-input {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .range-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .range-input::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .result-price {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 12px 0;
+        }
+        
+        .result-breakdown {
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        
+        .result-row.total {
+            border-top: 2px solid rgba(255,255,255,0.3);
+            font-weight: 600;
+            margin-top: 8px;
+            padding-top: 12px;
+        }
+        
+        .result-row.profit {
+            color: #90EE90;
+            font-weight: 600;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-secondary {
+            background: #667eea;
+            color: white;
+            margin-bottom: 16px;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .history-item {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+        
+        .history-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .history-date {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .history-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        
+        .history-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .history-cost {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        .history-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .delete-btn {
+            background: #fee;
+            color: #e53e3e;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 16px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 12px;
+            width: 100%;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .advanced-content {
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 12px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .small-input {
+            padding: 10px;
+            font-size: 14px;
+        }
+        
+        /* Project Mode Styles */
+        .project-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: #f0f4ff;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 28px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+        
+        .project-info {
+            flex: 1;
+        }
+        
+        .project-info-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .project-info-desc {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .project-items {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .project-item {
+            background: #f9fafb;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .project-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .project-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .project-item-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .project-item-details {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .project-item-cost {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .remove-item-btn {
+            background: #fee;
+            color: #e53e3e;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .project-summary {
+            background: #f0f4ff;
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 12px;
+        }
+        
+        .project-summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        
+        .project-summary-total {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 16px;
+            padding-top: 6px;
+            border-top: 2px solid #d0d7ff;
+            margin-top: 6px;
+        }
+        
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .project-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .project-items-list {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .project-sub-item {
+            font-size: 13px;
+            color: #666;
+            padding: 6px 0;
+            padding-left: 12px;
+            border-left: 2px solid #e0e0e0;
+            margin-bottom: 6px;
+        }
+        
+        /* Multi-Filament Styles */
+        .filament-list {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .filament-item {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid #667eea;
+        }
+        
+        .filament-item-info {
+            flex: 1;
+        }
+        
+        .filament-item-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .filament-item-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .filament-item-cost {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+        
+        .remove-filament-btn {
+            background: #fee;
+            color: #e53e3e;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .add-filament-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 12px;
+        }
+        
+        .multi-filament-badge {
+            background: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.2s;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #888;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .custom-filament-item {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid #667eea;
+        }
+        
+        .custom-filament-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .custom-filament-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .divider-option {
+            border-top: 2px solid #e0e0e0;
+            padding-top: 8px;
+            margin-top: 8px;
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🖨️ 3D Print Pricer</h1>
+    </div>
+    
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('calculator')">Calculator</button>
+            <button class="tab" onclick="showTab('history')">History (<span id="historyCount">0</span>)</button>
+        </div>
+        
+        <div id="calculatorTab">
+            <!-- Project Mode Toggle -->
+            <div class="project-toggle">
+                <label class="switch">
+                    <input type="checkbox" id="projectMode" onchange="toggleProjectMode()">
+                    <span class="slider"></span>
+                </label>
+                <div class="project-info">
+                    <div class="project-info-title">Project Mode</div>
+                    <div class="project-info-desc">Combine multiple items into one project</div>
+                </div>
+            </div>
+            
+            <!-- Project Items List (shown only in project mode) -->
+            <div id="projectItemsCard" class="project-items hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="color: #333; font-size: 16px;">Current Project Items</h3>
+                    <span style="color: #667eea; font-weight: 600;" id="projectItemCount">0 items</span>
+                </div>
+                <div id="projectItemsList"></div>
+                <div class="project-summary" id="projectSummary"></div>
+            </div>
+            
+            <div class="card">
+                <label class="label">Item Name / Description</label>
+                <input type="text" id="itemName" class="input" placeholder="e.g., Phone Stand, Dragon Figurine">
+            </div>
+            
+            <div class="card">
+                <label class="label">Filament Type</label>
+                <select id="filamentType" class="select" onchange="handleFilamentChange()">
+                    <!-- Populated dynamically -->
+                </select>
+                
+                <div class="grid-2" style="margin-top: 12px;">
+                    <div>
+                        <label class="label" style="font-size: 12px;">Cost per Roll ($)</label>
+                        <input type="number" id="filamentCost" class="input small-input" value="20" onchange="saveFilamentPrice()">
+                    </div>
+                    <div>
+                        <label class="label" style="font-size: 12px;">Roll Weight (g)</label>
+                        <input type="number" id="filamentWeight" class="input small-input" value="1000" onchange="saveFilamentPrice()">
+                    </div>
+                </div>
+                
+                <div style="margin-top: 12px;">
+                    <label class="label" style="font-size: 12px;">Weight Used (g)</label>
+                    <input type="number" id="filamentWeightUsed" class="input small-input" placeholder="e.g., 25">
+                </div>
+                
+                <button class="add-filament-btn" onclick="addFilament()">➕ Add This Filament</button>
+                
+                <div id="filamentList" class="filament-list hidden"></div>
+            </div>
+            
+            <div class="card">
+                <label class="label">Print Details</label>
+                <div>
+                    <label class="label" style="font-size: 13px; margin-bottom: 4px;">Print Time (hours)</label>
+                    <input type="number" id="printTime" class="input" placeholder="5.0" step="0.1">
+                </div>
+            </div>
+            
+            <div class="card">
+                <label class="label">Profit Margin: <span id="profitDisplay">30</span>%</label>
+                <div class="range-container">
+                    <input type="range" id="profitMargin" class="range-input" min="0" max="100" value="30" oninput="updateProfitDisplay()">
+                    <div class="range-labels">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <button class="toggle-btn" onclick="toggleAdvanced()">
+                    <span>Advanced Settings</span>
+                    <span id="advancedArrow">▼</span>
+                </button>
+                <div id="advancedContent" class="advanced-content hidden">
+                    <div class="grid-2" style="gap: 12px;">
+                        <div>
+                            <label class="label" style="font-size: 12px;">Printer Cost ($)</label>
+                            <input type="number" id="printerCost" class="input small-input" value="300">
+                        </div>
+                        <div>
+                            <label class="label" style="font-size: 12px;">Lifespan (hrs)</label>
+                            <input type="number" id="printerLifespan" class="input small-input" value="2000">
+                        </div>
+                        <div>
+                            <label class="label" style="font-size: 12px;">Electric ($/kWh)</label>
+                            <input type="number" id="electricityRate" class="input small-input" value="0.12" step="0.01">
+                        </div>
+                        <div>
+                            <label class="label" style="font-size: 12px;">Wattage (W)</label>
+                            <input type="number" id="printerWattage" class="input small-input" value="150">
+                        </div>
+                        <div>
+                            <label class="label" style="font-size: 12px;">Labor ($/hr)</label>
+                            <input type="number" id="laborRate" class="input small-input" value="15">
+                        </div>
+                        <div>
+                            <label class="label" style="font-size: 12px;">Setup (min)</label>
+                            <input type="number" id="setupTime" class="input small-input" value="15">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-card">
+                <div style="font-size: 14px; opacity: 0.9;">Recommended Price</div>
+                <div class="result-price" id="finalPrice">$0.00</div>
+                
+                <div class="result-breakdown">
+                    <div class="result-row">
+                        <span>Material</span>
+                        <span id="materialCost">$0.00</span>
+                    </div>
+                    <div class="result-row">
+                        <span>Printer Wear</span>
+                        <span id="wearCost">$0.00</span>
+                    </div>
+                    <div class="result-row">
+                        <span>Electricity</span>
+                        <span id="electricCost">$0.00</span>
+                    </div>
+                    <div class="result-row">
+                        <span>Labor</span>
+                        <span id="laborCost">$0.00</span>
+                    </div>
+                    <div class="result-row total">
+                        <span>Total Cost</span>
+                        <span id="totalCost">$0.00</span>
+                    </div>
+                    <div class="result-row profit">
+                        <span>Profit</span>
+                        <span id="profitAmount">$0.00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Standard Mode Button -->
+            <div id="standardModeButtons">
+                <button class="btn btn-primary" onclick="saveToHistory()">Save to History</button>
+            </div>
+            
+            <!-- Project Mode Buttons -->
+            <div id="projectModeButtons" class="hidden">
+                <div class="btn-grid">
+                    <button class="btn btn-secondary" onclick="addToProject()">➕ Add to Project</button>
+                    <button class="btn btn-warning" onclick="clearProject()">🗑️ Clear Project</button>
+                </div>
+                <button class="btn btn-primary" onclick="saveProjectToHistory()" id="saveProjectBtn" disabled>Save Project to History</button>
+            </div>
+        </div>
+        
+        <div id="historyTab" class="hidden">
+            <button class="btn btn-secondary" onclick="exportCSV()">📥 Export to CSV</button>
+            <div id="historyList"></div>
+        </div>
+    </div>
+    
+    <!-- Custom Filament Modal -->
+    <div id="customFilamentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Custom Filament</h2>
+                <button class="modal-close" onclick="closeCustomFilamentModal()">&times;</button>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label class="label">Filament Name</label>
+                <input type="text" id="customFilamentName" class="input" placeholder="e.g., Overture Black PLA">
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label class="label">Base Type (optional)</label>
+                <select id="customFilamentBaseType" class="select">
+                    <option value="">None</option>
+                    <option value="PLA">PLA</option>
+                    <option value="PLA+">PLA+</option>
+                    <option value="PETG">PETG</option>
+                    <option value="ABS">ABS</option>
+                    <option value="ASA">ASA</option>
+                    <option value="TPU">TPU</option>
+                    <option value="Nylon">Nylon</option>
+                    <option value="PC">Polycarbonate</option>
+                    <option value="HIPS">HIPS</option>
+                    <option value="PVA">PVA</option>
+                </select>
+            </div>
+            
+            <div class="grid-2" style="margin-bottom: 16px;">
+                <div>
+                    <label class="label">Cost per Roll ($)</label>
+                    <input type="number" id="customFilamentCost" class="input" value="20" step="0.01">
+                </div>
+                <div>
+                    <label class="label">Roll Weight (g)</label>
+                    <input type="number" id="customFilamentWeight" class="input" value="1000">
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeCustomFilamentModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCustomFilament()">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Manage Custom Filaments Modal -->
+    <div id="manageFilamentsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Manage Custom Filaments</h2>
+                <button class="modal-close" onclick="closeManageFilamentsModal()">&times;</button>
+            </div>
+            
+            <div id="customFilamentsList"></div>
+            
+            <button class="btn btn-secondary" onclick="closeManageFilamentsModal()" style="margin-top: 16px;">Close</button>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize
+        let filamentPrices = {
+            PLA: { cost: 20, weight: 1000, isDefault: true, uses: 0 },
+            'PLA+': { cost: 22, weight: 1000, isDefault: true, uses: 0 },
+            PETG: { cost: 25, weight: 1000, isDefault: true, uses: 0 },
+            ABS: { cost: 23, weight: 1000, isDefault: true, uses: 0 },
+            ASA: { cost: 26, weight: 1000, isDefault: true, uses: 0 },
+            TPU: { cost: 35, weight: 1000, isDefault: true, uses: 0 },
+            Nylon: { cost: 40, weight: 1000, isDefault: true, uses: 0 },
+            'PC (Polycarbonate)': { cost: 45, weight: 1000, isDefault: true, uses: 0 },
+            HIPS: { cost: 28, weight: 1000, isDefault: true, uses: 0 },
+            PVA: { cost: 50, weight: 500, isDefault: true, uses: 0 }
+        };
+        
+        let customFilaments = [];
+        let history = [];
+        let currentProject = [];
+        let projectMode = false;
+        let currentFilaments = [];
+        
+        // Load saved data
+        function loadData() {
+            try {
+                const saved = localStorage.getItem('printPricerData');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    
+                    // Load filament prices and usage
+                    if (data.filamentPrices) {
+                        // Merge saved data with defaults, preserving usage counts
+                        Object.keys(filamentPrices).forEach(key => {
+                            if (data.filamentPrices[key]) {
+                                filamentPrices[key] = { ...filamentPrices[key], ...data.filamentPrices[key] };
+                            }
+                        });
+                    }
+                    
+                    // Load custom filaments
+                    customFilaments = data.customFilaments || [];
+                    
+                    history = data.history || [];
+                    
+                    // Load settings
+                    if (data.settings) {
+                        document.getElementById('printerCost').value = data.settings.printerCost || 300;
+                        document.getElementById('printerLifespan').value = data.settings.printerLifespan || 2000;
+                        document.getElementById('electricityRate').value = data.settings.electricityRate || 0.12;
+                        document.getElementById('printerWattage').value = data.settings.printerWattage || 150;
+                        document.getElementById('laborRate').value = data.settings.laborRate || 15;
+                        document.getElementById('setupTime').value = data.settings.setupTime || 15;
+                        document.getElementById('profitMargin').value = data.settings.profitMargin || 30;
+                        updateProfitDisplay();
+                    }
+                }
+            } catch (e) {
+                console.log('No saved data found');
+            }
+            
+            populateFilamentDropdown();
+            loadFilamentPrice();
+            updateHistoryCount();
+            renderHistory();
+            calculate();
+        }
+        
+        // Save data
+        function saveData() {
+            const data = {
+                filamentPrices,
+                customFilaments,
+                history,
+                settings: {
+                    printerCost: parseFloat(document.getElementById('printerCost').value),
+                    printerLifespan: parseFloat(document.getElementById('printerLifespan').value),
+                    electricityRate: parseFloat(document.getElementById('electricityRate').value),
+                    printerWattage: parseFloat(document.getElementById('printerWattage').value),
+                    laborRate: parseFloat(document.getElementById('laborRate').value),
+                    setupTime: parseFloat(document.getElementById('setupTime').value),
+                    profitMargin: parseFloat(document.getElementById('profitMargin').value)
+                }
+            };
+            localStorage.setItem('printPricerData', JSON.stringify(data));
+        }
+        
+        // Populate filament dropdown
+        function populateFilamentDropdown() {
+            const dropdown = document.getElementById('filamentType');
+            const currentValue = dropdown.value;
+            
+            // Combine default and custom filaments
+            const allFilaments = [
+                ...Object.keys(filamentPrices).map(name => ({
+                    name,
+                    ...filamentPrices[name]
+                })),
+                ...customFilaments
+            ];
+            
+            // Sort by usage count (descending)
+            allFilaments.sort((a, b) => (b.uses || 0) - (a.uses || 0));
+            
+            // Build dropdown
+            let html = '';
+            
+            allFilaments.forEach(filament => {
+                html += `<option value="${filament.name}">${filament.name}</option>`;
+            });
+            
+            // Add divider and "Add Custom" option
+            html += '<option value="__ADD_CUSTOM__" class="divider-option">+ Add Custom Filament</option>';
+            html += '<option value="__MANAGE__" class="divider-option">⚙️ Manage Custom Filaments</option>';
+            
+            dropdown.innerHTML = html;
+            
+            // Restore previous selection if it exists
+            if (currentValue && currentValue !== '__ADD_CUSTOM__' && currentValue !== '__MANAGE__') {
+                dropdown.value = currentValue;
+            }
+        }
+        
+        // Handle filament dropdown change
+        function handleFilamentChange() {
+            const dropdown = document.getElementById('filamentType');
+            const value = dropdown.value;
+            
+            if (value === '__ADD_CUSTOM__') {
+                openCustomFilamentModal();
+                // Reset to first actual filament
+                populateFilamentDropdown();
+            } else if (value === '__MANAGE__') {
+                openManageFilamentsModal();
+                // Reset to first actual filament
+                populateFilamentDropdown();
+            } else {
+                loadFilamentPrice();
+            }
+        }
+        
+        // Open custom filament modal
+        function openCustomFilamentModal() {
+            document.getElementById('customFilamentModal').classList.add('active');
+            document.getElementById('customFilamentName').value = '';
+            document.getElementById('customFilamentBaseType').value = '';
+            document.getElementById('customFilamentCost').value = '20';
+            document.getElementById('customFilamentWeight').value = '1000';
+        }
+        
+        // Close custom filament modal
+        function closeCustomFilamentModal() {
+            document.getElementById('customFilamentModal').classList.remove('active');
+        }
+        
+        // Save custom filament
+        function saveCustomFilament() {
+            const name = document.getElementById('customFilamentName').value.trim();
+            const baseType = document.getElementById('customFilamentBaseType').value;
+            const cost = parseFloat(document.getElementById('customFilamentCost').value);
+            const weight = parseFloat(document.getElementById('customFilamentWeight').value);
+            
+            if (!name) {
+                alert('Please enter a filament name');
+                return;
+            }
+            
+            // Check if name already exists
+            if (filamentPrices[name] || customFilaments.find(f => f.name === name)) {
+                alert('A filament with this name already exists');
+                return;
+            }
+            
+            const customFilament = {
+                name,
+                baseType,
+                cost,
+                weight,
+                isCustom: true,
+                uses: 0
+            };
+            
+            customFilaments.push(customFilament);
+            saveData();
+            populateFilamentDropdown();
+            closeCustomFilamentModal();
+            
+            // Select the newly created filament
+            document.getElementById('filamentType').value = name;
+            loadFilamentPrice();
+        }
+        
+        // Open manage filaments modal
+        function openManageFilamentsModal() {
+            document.getElementById('manageFilamentsModal').classList.add('active');
+            renderCustomFilamentsList();
+        }
+        
+        // Close manage filaments modal
+        function closeManageFilamentsModal() {
+            document.getElementById('manageFilamentsModal').classList.remove('active');
+        }
+        
+        // Render custom filaments list
+        function renderCustomFilamentsList() {
+            const list = document.getElementById('customFilamentsList');
+            
+            if (customFilaments.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No custom filaments yet</div>';
+                return;
+            }
+            
+            list.innerHTML = customFilaments.map(filament => `
+                <div class="custom-filament-item">
+                    <div style="flex: 1;">
+                        <div class="custom-filament-name">${filament.name}</div>
+                        <div class="custom-filament-details">
+                            ${filament.baseType ? filament.baseType + ' • ' : ''}
+                            $${filament.cost}/${filament.weight}g
+                        </div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteCustomFilament('${filament.name}')">Delete</button>
+                </div>
+            `).join('');
+        }
+        
+        // Delete custom filament
+        function deleteCustomFilament(name) {
+            if (confirm(`Delete "${name}"?`)) {
+                customFilaments = customFilaments.filter(f => f.name !== name);
+                saveData();
+                populateFilamentDropdown();
+                renderCustomFilamentsList();
+            }
+        }
+        
+        // Get filament data (from either defaults or custom)
+        function getFilamentData(name) {
+            if (filamentPrices[name]) {
+                return filamentPrices[name];
+            }
+            const custom = customFilaments.find(f => f.name === name);
+            return custom || null;
+        }
+        
+        // Increment filament usage
+        function incrementFilamentUsage(name) {
+            if (filamentPrices[name]) {
+                filamentPrices[name].uses = (filamentPrices[name].uses || 0) + 1;
+            } else {
+                const custom = customFilaments.find(f => f.name === name);
+                if (custom) {
+                    custom.uses = (custom.uses || 0) + 1;
+                }
+            }
+            saveData();
+        }
+        
+        // Load filament price
+        function loadFilamentPrice() {
+            const type = document.getElementById('filamentType').value;
+            const filament = getFilamentData(type);
+            if (filament) {
+                document.getElementById('filamentCost').value = filament.cost;
+                document.getElementById('filamentWeight').value = filament.weight;
+            }
+            calculate();
+        }
+        
+        // Save filament price
+        function saveFilamentPrice() {
+            const type = document.getElementById('filamentType').value;
+            const cost = parseFloat(document.getElementById('filamentCost').value);
+            const weight = parseFloat(document.getElementById('filamentWeight').value);
+            
+            if (filamentPrices[type]) {
+                filamentPrices[type].cost = cost;
+                filamentPrices[type].weight = weight;
+            } else {
+                const custom = customFilaments.find(f => f.name === type);
+                if (custom) {
+                    custom.cost = cost;
+                    custom.weight = weight;
+                }
+            }
+            saveData();
+            calculate();
+        }
+        
+        // Calculate price
+        function calculate() {
+            const time = parseFloat(document.getElementById('printTime').value) || 0;
+            const printerCost = parseFloat(document.getElementById('printerCost').value) || 0;
+            const printerLifespan = parseFloat(document.getElementById('printerLifespan').value) || 2000;
+            const electricityRate = parseFloat(document.getElementById('electricityRate').value) || 0;
+            const printerWattage = parseFloat(document.getElementById('printerWattage').value) || 0;
+            const laborRate = parseFloat(document.getElementById('laborRate').value) || 0;
+            const setupTime = parseFloat(document.getElementById('setupTime').value) || 0;
+            const profitMargin = parseFloat(document.getElementById('profitMargin').value) || 0;
+            
+            // Calculate material cost from all filaments
+            let materialCost = 0;
+            let totalWeight = 0;
+            
+            if (currentFilaments.length > 0) {
+                currentFilaments.forEach(filament => {
+                    materialCost += filament.cost;
+                    totalWeight += filament.weight;
+                });
+            }
+            
+            const wearCost = (printerCost / printerLifespan) * time;
+            const electricCost = (printerWattage / 1000) * time * electricityRate;
+            const laborCost = (laborRate / 60) * setupTime;
+            const totalCost = materialCost + wearCost + electricCost + laborCost;
+            const finalPrice = totalCost * (1 + profitMargin / 100);
+            const profit = finalPrice - totalCost;
+            
+            document.getElementById('materialCost').textContent = '$' + materialCost.toFixed(2);
+            document.getElementById('wearCost').textContent = '$' + wearCost.toFixed(2);
+            document.getElementById('electricCost').textContent = '$' + electricCost.toFixed(2);
+            document.getElementById('laborCost').textContent = '$' + laborCost.toFixed(2);
+            document.getElementById('totalCost').textContent = '$' + totalCost.toFixed(2);
+            document.getElementById('profitAmount').textContent = '$' + profit.toFixed(2);
+            document.getElementById('finalPrice').textContent = '$' + finalPrice.toFixed(2);
+            
+            return { materialCost, totalWeight, totalCost, finalPrice };
+        }
+        
+        // Add filament to list
+        function addFilament() {
+            const type = document.getElementById('filamentType').value;
+            const weightUsed = parseFloat(document.getElementById('filamentWeightUsed').value);
+            const filamentCost = parseFloat(document.getElementById('filamentCost').value);
+            const rollWeight = parseFloat(document.getElementById('filamentWeight').value);
+            
+            if (!weightUsed || weightUsed <= 0) {
+                alert('Please enter the weight of filament used');
+                return;
+            }
+            
+            const costPerGram = filamentCost / rollWeight;
+            const cost = costPerGram * weightUsed;
+            
+            const filament = {
+                id: Date.now(),
+                type: type,
+                weight: weightUsed,
+                costPerRoll: filamentCost,
+                rollWeight: rollWeight,
+                cost: cost
+            };
+            
+            currentFilaments.push(filament);
+            
+            // Increment usage count
+            incrementFilamentUsage(type);
+            
+            // Re-populate dropdown to reflect new usage order
+            populateFilamentDropdown();
+            
+            renderFilamentList();
+            calculate();
+            
+            // Clear weight used field
+            document.getElementById('filamentWeightUsed').value = '';
+        }
+        
+        // Remove filament from list
+        function removeFilament(id) {
+            currentFilaments = currentFilaments.filter(f => f.id !== id);
+            renderFilamentList();
+            calculate();
+        }
+        
+        // Render filament list
+        function renderFilamentList() {
+            const list = document.getElementById('filamentList');
+            
+            if (currentFilaments.length === 0) {
+                list.classList.add('hidden');
+                return;
+            }
+            
+            list.classList.remove('hidden');
+            
+            const totalWeight = currentFilaments.reduce((sum, f) => sum + f.weight, 0);
+            const totalCost = currentFilaments.reduce((sum, f) => sum + f.cost, 0);
+            
+            list.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <strong style="font-size: 14px; color: #333;">Filaments Used</strong>
+                    <span style="font-size: 12px; color: #667eea; font-weight: 600;">${currentFilaments.length} filament${currentFilaments.length !== 1 ? 's' : ''}</span>
+                </div>
+                ${currentFilaments.map(f => `
+                    <div class="filament-item">
+                        <div class="filament-item-info">
+                            <div class="filament-item-name">${f.type}</div>
+                            <div class="filament-item-details">${f.weight}g (${f.costPerRoll}/${f.rollWeight}g roll)</div>
+                        </div>
+                        <div class="filament-item-cost">$${f.cost.toFixed(2)}</div>
+                        <button class="remove-filament-btn" onclick="removeFilament(${f.id})">×</button>
+                    </div>
+                `).join('')}
+                <div style="display: flex; justify-content: space-between; padding: 8px; background: #f0f4ff; border-radius: 8px; margin-top: 8px;">
+                    <strong style="font-size: 13px; color: #333;">Total:</strong>
+                    <div style="text-align: right;">
+                        <div style="font-size: 12px; color: #666;">${totalWeight}g</div>
+                        <div style="font-size: 14px; font-weight: 600; color: #667eea;">$${totalCost.toFixed(2)}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Clear filaments
+        function clearFilaments() {
+            currentFilaments = [];
+            renderFilamentList();
+            calculate();
+        }
+        
+        // Update profit display
+        function updateProfitDisplay() {
+            const value = document.getElementById('profitMargin').value;
+            document.getElementById('profitDisplay').textContent = value;
+            calculate();
+        }
+        
+        // Toggle advanced settings
+        function toggleAdvanced() {
+            const content = document.getElementById('advancedContent');
+            const arrow = document.getElementById('advancedArrow');
+            content.classList.toggle('hidden');
+            arrow.textContent = content.classList.contains('hidden') ? '▼' : '▲';
+        }
+        
+        // Show tab
+        function showTab(tab) {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (tab === 'calculator') {
+                document.getElementById('calculatorTab').classList.remove('hidden');
+                document.getElementById('historyTab').classList.add('hidden');
+            } else {
+                document.getElementById('calculatorTab').classList.add('hidden');
+                document.getElementById('historyTab').classList.remove('hidden');
+                renderHistory();
+            }
+        }
+        
+        // Toggle project mode
+        function toggleProjectMode() {
+            projectMode = document.getElementById('projectMode').checked;
+            
+            if (projectMode) {
+                document.getElementById('projectItemsCard').classList.remove('hidden');
+                document.getElementById('standardModeButtons').classList.add('hidden');
+                document.getElementById('projectModeButtons').classList.remove('hidden');
+                updateProjectDisplay();
+            } else {
+                document.getElementById('projectItemsCard').classList.add('hidden');
+                document.getElementById('standardModeButtons').classList.remove('hidden');
+                document.getElementById('projectModeButtons').classList.add('hidden');
+                
+                // Ask to clear project if it has items
+                if (currentProject.length > 0) {
+                    if (confirm('Clear current project items?')) {
+                        currentProject = [];
+                    }
+                }
+            }
+        }
+        
+        // Add item to project
+        function addToProject() {
+            const itemName = document.getElementById('itemName').value.trim();
+            const time = parseFloat(document.getElementById('printTime').value);
+            
+            if (!itemName || !time) {
+                alert('Please fill in item name and time');
+                return;
+            }
+            
+            if (currentFilaments.length === 0) {
+                alert('Please add at least one filament');
+                return;
+            }
+            
+            saveFilamentPrice();
+            
+            const calcResult = calculate();
+            
+            const item = {
+                id: Date.now(),
+                itemName,
+                filaments: [...currentFilaments],
+                weight: calcResult.totalWeight,
+                time,
+                totalCost: calcResult.totalCost,
+                finalPrice: calcResult.finalPrice
+            };
+            
+            currentProject.push(item);
+            updateProjectDisplay();
+            
+            // Clear form
+            document.getElementById('itemName').value = '';
+            document.getElementById('printTime').value = '';
+            clearFilaments();
+        }
+        
+        // Remove item from project
+        function removeFromProject(id) {
+            currentProject = currentProject.filter(item => item.id !== id);
+            updateProjectDisplay();
+        }
+        
+        // Update project display
+        function updateProjectDisplay() {
+            const itemsList = document.getElementById('projectItemsList');
+            const itemCount = document.getElementById('projectItemCount');
+            const summary = document.getElementById('projectSummary');
+            const saveBtn = document.getElementById('saveProjectBtn');
+            
+            itemCount.textContent = currentProject.length + ' item' + (currentProject.length !== 1 ? 's' : '');
+            
+            if (currentProject.length === 0) {
+                itemsList.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No items added yet</div>';
+                summary.innerHTML = '';
+                saveBtn.disabled = true;
+                return;
+            }
+            
+            saveBtn.disabled = false;
+            
+            itemsList.innerHTML = currentProject.map(item => {
+                const filamentSummary = item.filaments ? 
+                    (item.filaments.length > 1 ? 
+                        `${item.filaments.length} filaments` : 
+                        item.filaments[0].type) :
+                    item.filamentType;
+                
+                return `
+                    <div class="project-item">
+                        <div class="project-item-header">
+                            <span class="project-item-name">${item.itemName}</span>
+                            <button class="remove-item-btn" onclick="removeFromProject(${item.id})">Remove</button>
+                        </div>
+                        <div class="project-item-details">${filamentSummary} • ${item.weight}g • ${item.time}h</div>
+                        <div class="project-item-cost">$${item.finalPrice.toFixed(2)}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Calculate totals
+            const totalCost = currentProject.reduce((sum, item) => sum + item.totalCost, 0);
+            const totalPrice = currentProject.reduce((sum, item) => sum + item.finalPrice, 0);
+            const totalProfit = totalPrice - totalCost;
+            const totalWeight = currentProject.reduce((sum, item) => sum + item.weight, 0);
+            const totalTime = currentProject.reduce((sum, item) => sum + item.time, 0);
+            
+            summary.innerHTML = `
+                <div class="project-summary-row">
+                    <span>Total Items:</span>
+                    <span>${currentProject.length}</span>
+                </div>
+                <div class="project-summary-row">
+                    <span>Total Weight:</span>
+                    <span>${totalWeight}g</span>
+                </div>
+                <div class="project-summary-row">
+                    <span>Total Time:</span>
+                    <span>${totalTime.toFixed(1)}h</span>
+                </div>
+                <div class="project-summary-row">
+                    <span>Total Cost:</span>
+                    <span>$${totalCost.toFixed(2)}</span>
+                </div>
+                <div class="project-summary-row project-summary-total">
+                    <span>Project Price:</span>
+                    <span>$${totalPrice.toFixed(2)}</span>
+                </div>
+                <div class="project-summary-row" style="color: #10b981;">
+                    <span>Total Profit:</span>
+                    <span>$${totalProfit.toFixed(2)}</span>
+                </div>
+            `;
+        }
+        
+        // Clear project
+        function clearProject() {
+            if (currentProject.length === 0) return;
+            
+            if (confirm('Clear all items from the project?')) {
+                currentProject = [];
+                updateProjectDisplay();
+            }
+        }
+        
+        // Save project to history
+        function saveProjectToHistory() {
+            if (currentProject.length === 0) {
+                alert('No items in project');
+                return;
+            }
+            
+            const projectName = prompt('Enter a name for this project:', 'Project ' + new Date().toLocaleDateString());
+            if (!projectName) return;
+            
+            const totalCost = currentProject.reduce((sum, item) => sum + item.totalCost, 0);
+            const totalPrice = currentProject.reduce((sum, item) => sum + item.finalPrice, 0);
+            const totalWeight = currentProject.reduce((sum, item) => sum + item.weight, 0);
+            const totalTime = currentProject.reduce((sum, item) => sum + item.time, 0);
+            
+            const entry = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                itemName: projectName,
+                isProject: true,
+                projectItems: currentProject,
+                itemCount: currentProject.length,
+                weight: totalWeight,
+                time: totalTime,
+                totalCost,
+                finalPrice: totalPrice,
+                profitMargin: parseFloat(document.getElementById('profitMargin').value)
+            };
+            
+            history.unshift(entry);
+            saveData();
+            updateHistoryCount();
+            
+            currentProject = [];
+            updateProjectDisplay();
+            
+            alert('✓ Project saved to history!');
+        }
+        
+        // Save to history
+        function saveToHistory() {
+            const itemName = document.getElementById('itemName').value.trim();
+            const time = parseFloat(document.getElementById('printTime').value);
+            
+            if (!itemName || !time) {
+                alert('Please fill in item name and time');
+                return;
+            }
+            
+            if (currentFilaments.length === 0) {
+                alert('Please add at least one filament');
+                return;
+            }
+            
+            saveFilamentPrice();
+            
+            const calcResult = calculate();
+            
+            const entry = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                itemName,
+                filaments: [...currentFilaments],
+                weight: calcResult.totalWeight,
+                time,
+                profitMargin: parseFloat(document.getElementById('profitMargin').value),
+                totalCost: calcResult.totalCost,
+                finalPrice: calcResult.finalPrice,
+                isProject: false
+            };
+            
+            history.unshift(entry);
+            saveData();
+            updateHistoryCount();
+            
+            // Clear form
+            document.getElementById('itemName').value = '';
+            document.getElementById('printTime').value = '';
+            clearFilaments();
+            
+            alert('✓ Saved to history!');
+        }
+        
+        // Update history count
+        function updateHistoryCount() {
+            document.getElementById('historyCount').textContent = history.length;
+        }
+        
+        // Render history
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                list.innerHTML = '<div class="empty-state">No calculations saved yet.<br>Save calculations to see them here.</div>';
+                return;
+            }
+            
+            list.innerHTML = history.map(item => {
+                if (item.isProject) {
+                    return `
+                        <div class="history-item">
+                            <div class="history-header">
+                                <div>
+                                    <div class="history-title">
+                                        ${item.itemName}
+                                        <span class="project-badge">${item.itemCount} items</span>
+                                    </div>
+                                    <div class="history-date">${new Date(item.date).toLocaleString()}</div>
+                                </div>
+                                <button class="delete-btn" onclick="deleteHistory(${item.id})">Delete</button>
+                            </div>
+                            <div class="history-details">
+                                <div><strong>Total Weight:</strong> ${item.weight.toFixed(1)}g</div>
+                                <div><strong>Total Time:</strong> ${item.time.toFixed(1)}h</div>
+                                <div><strong>Items:</strong> ${item.itemCount}</div>
+                                <div><strong>Profit:</strong> ${item.profitMargin}%</div>
+                            </div>
+                            <div class="project-items-list">
+                                ${item.projectItems.map(subItem => {
+                                    const filamentInfo = subItem.filaments ? 
+                                        (subItem.filaments.length > 1 ? 
+                                            `${subItem.filaments.length} filaments` : 
+                                            subItem.filaments[0].type) :
+                                        subItem.filamentType;
+                                    return `
+                                        <div class="project-sub-item">
+                                            • ${subItem.itemName} - ${filamentInfo}, ${subItem.weight.toFixed(1)}g, ${subItem.time}h - $${subItem.finalPrice.toFixed(2)}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            <div class="history-footer">
+                                <div>
+                                    <div class="history-cost">Cost: $${item.totalCost.toFixed(2)}</div>
+                                </div>
+                                <div class="history-price">$${item.finalPrice.toFixed(2)}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Handle both new multi-filament format and old single filament format
+                    let filamentDisplay = '';
+                    if (item.filaments && item.filaments.length > 0) {
+                        if (item.filaments.length === 1) {
+                            filamentDisplay = `<div><strong>Filament:</strong> ${item.filaments[0].type} (${item.filaments[0].weight}g)</div>`;
+                        } else {
+                            filamentDisplay = `<div><strong>Filaments:</strong> ${item.filaments.length} types <span class="multi-filament-badge">${item.filaments.length}x</span></div>`;
+                        }
+                    } else if (item.filamentType) {
+                        // Legacy single filament format
+                        filamentDisplay = `<div><strong>Filament:</strong> ${item.filamentType}</div>`;
+                    }
+                    
+                    return `
+                        <div class="history-item">
+                            <div class="history-header">
+                                <div>
+                                    <div class="history-title">${item.itemName}</div>
+                                    <div class="history-date">${new Date(item.date).toLocaleString()}</div>
+                                </div>
+                                <button class="delete-btn" onclick="deleteHistory(${item.id})">Delete</button>
+                            </div>
+                            <div class="history-details">
+                                ${filamentDisplay}
+                                <div><strong>Weight:</strong> ${item.weight.toFixed(1)}g</div>
+                                <div><strong>Time:</strong> ${item.time}h</div>
+                                <div><strong>Profit:</strong> ${item.profitMargin}%</div>
+                            </div>
+                            ${item.filaments && item.filaments.length > 1 ? `
+                                <div class="project-items-list">
+                                    ${item.filaments.map(f => `
+                                        <div class="project-sub-item">
+                                            • ${f.type}: ${f.weight}g @ $${f.cost.toFixed(2)}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                            <div class="history-footer">
+                                <div>
+                                    <div class="history-cost">Cost: $${item.totalCost.toFixed(2)}</div>
+                                </div>
+                                <div class="history-price">$${item.finalPrice.toFixed(2)}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+        }
+        
+        // Delete history item
+        function deleteHistory(id) {
+            if (confirm('Delete this calculation?')) {
+                history = history.filter(item => item.id !== id);
+                saveData();
+                updateHistoryCount();
+                renderHistory();
+            }
+        }
+        
+        // Export to CSV
+        function exportCSV() {
+            if (history.length === 0) {
+                alert('No history to export');
+                return;
+            }
+            
+            const headers = ['Date', 'Item Name', 'Type', 'Filaments', 'Weight (g)', 'Time (h)', 'Cost', 'Price', 'Profit'];
+            const rows = history.map(item => {
+                if (item.isProject) {
+                    return [
+                        new Date(item.date).toLocaleString(),
+                        item.itemName,
+                        'Project (' + item.itemCount + ' items)',
+                        'Multiple',
+                        item.weight.toFixed(1),
+                        item.time.toFixed(1),
+                        item.totalCost.toFixed(2),
+                        item.finalPrice.toFixed(2),
+                        (item.finalPrice - item.totalCost).toFixed(2)
+                    ];
+                } else {
+                    let filamentInfo = '';
+                    if (item.filaments && item.filaments.length > 0) {
+                        filamentInfo = item.filaments.map(f => `${f.type}(${f.weight}g)`).join('+');
+                    } else if (item.filamentType) {
+                        filamentInfo = item.filamentType;
+                    }
+                    
+                    return [
+                        new Date(item.date).toLocaleString(),
+                        item.itemName,
+                        'Single Item',
+                        filamentInfo,
+                        item.weight.toFixed(1),
+                        item.time,
+                        item.totalCost.toFixed(2),
+                        item.finalPrice.toFixed(2),
+                        (item.finalPrice - item.totalCost).toFixed(2)
+                    ];
+                }
+            });
+            
+            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '3d-print-history-' + new Date().toISOString().split('T')[0] + '.csv';
+            a.click();
+        }
+        
+        // Add event listeners
+        document.getElementById('printTime').addEventListener('input', calculate);
+        document.getElementById('printerCost').addEventListener('input', calculate);
+        document.getElementById('printerLifespan').addEventListener('input', calculate);
+        document.getElementById('electricityRate').addEventListener('input', calculate);
+        document.getElementById('printerWattage').addEventListener('input', calculate);
+        document.getElementById('laborRate').addEventListener('input', calculate);
+        document.getElementById('setupTime').addEventListener('input', calculate);
+        
+        // Initialize on load
+        loadData();
+    </script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered successfully:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
