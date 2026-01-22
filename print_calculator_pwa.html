@@ -865,7 +865,7 @@
         </div>
         
         <div id="historyTab" class="hidden">
-            <button class="btn btn-secondary" onclick="exportCSV()">📥 Export to CSV</button>
+            <button class="btn btn-secondary" onclick="exportCSV()">Export History</button>
             <div id="historyList"></div>
         </div>
     </div>
@@ -1774,12 +1774,44 @@
             });
             
             const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+            const filename = '3d-print-history-' + new Date().toISOString().split('T')[0] + '.csv';
+            
+            // Try Web Share API first (works on mobile)
+            if (navigator.share && navigator.canShare) {
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const file = new File([blob], filename, { type: 'text/csv' });
+                
+                if (navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: '3D Print History',
+                        text: 'Export of 3D print pricing history'
+                    }).then(() => {
+                        console.log('Shared successfully');
+                    }).catch((error) => {
+                        console.log('Share failed:', error);
+                        // Fallback to download
+                        downloadCSV(csv, filename);
+                    });
+                    return;
+                }
+            }
+            
+            // Fallback to traditional download
+            downloadCSV(csv, filename);
+        }
+        
+        // Download CSV (fallback method)
+        function downloadCSV(csv, filename) {
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = '3d-print-history-' + new Date().toISOString().split('T')[0] + '.csv';
+            a.download = filename;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
         
         // Add event listeners
